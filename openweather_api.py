@@ -1,3 +1,6 @@
+from datetime import datetime
+
+from forecast_info import ForecastInfo
 from generic_api import APIInterface
 from weather_info import WeatherInfo
 
@@ -23,3 +26,49 @@ class OpenWeatherAPI(APIInterface):
             image_url=f"http://openweathermap.org/img/w/{weather_data.get('weather')[0].get('icon')}.png",
         )
         return weather_info
+
+    def get_next_3_hours(self, latitude, longitude) -> list:
+        forecast_data: dict = self.get_request(f"{self.base_url}/onecall", {
+            "appid": self.api_key,
+            "lat": latitude,
+            "lon": longitude,
+            "units": "metric",
+            "lang": "ru"
+        })
+        try:
+            forecast_data: list = forecast_data.get("hourly")[:3]
+        except TypeError:
+            return []
+        forecast_info_list = []
+        for forecast in forecast_data:
+            forecast_info = ForecastInfo(
+                weather_info=WeatherInfo(
+                    weather_state=forecast.get("weather")[0].get("description"),
+                    temperature_value=forecast.get("temp"),
+                    temperature_unit="C"
+                ),
+                date_time=datetime.fromtimestamp(forecast.get("dt")).strftime("%H:%M")
+            )
+            forecast_info_list.append(forecast_info)
+        print(forecast_data)
+        return forecast_info_list
+
+    def get_tomorrow_forecast(self, latitude, longitude) -> WeatherInfo:
+        forecast_data: dict = self.get_request(f"{self.base_url}/onecall", {
+            "appid": self.api_key,
+            "lat": latitude,
+            "lon": longitude,
+            "units": "metric",
+            "lang": "ru"
+        })
+        try:
+            weather_data: dict = forecast_data.get("daily")[1]
+            weather_info: WeatherInfo = WeatherInfo(
+                weather_state=weather_data.get("weather")[0].get("description"),
+                temperature_value=(weather_data.get("temp").get("min") + weather_data.get("temp").get("max")) / 2.0,
+                temperature_unit="C",
+                image_url=f"http://openweathermap.org/img/w/{weather_data.get('weather')[0].get('icon')}.png",
+            )
+            return weather_info
+        except TypeError:
+            return WeatherInfo("Clear", 0, "C")

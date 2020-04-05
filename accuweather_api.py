@@ -1,3 +1,6 @@
+from datetime import datetime
+
+from forecast_info import ForecastInfo
 from generic_api import APIInterface
 from weather_info import WeatherInfo
 
@@ -33,3 +36,27 @@ class AccuWeatherAPI(APIInterface):
             image_url=f"https://developer.accuweather.com/sites/default/files/{str(weather_data.get('WeatherIcon')).zfill(2)}-s.png"
         )
         return weather_info
+
+    def get_next_3_hours(self, location_key: str) -> list:
+        forecast_data: list = self.get_request(f"{self.base_url}/forecasts/v1/hourly/12hour/{location_key}", {
+            "apikey": self.api_key,
+            "language": "ru-ru",
+            "metric": True
+        })
+        try:
+            forecast_data = forecast_data[:3]
+        except TypeError:
+            return []
+        forecast_info_list = []
+        for forecast in forecast_data:
+            forecast_info = ForecastInfo(
+                weather_info=WeatherInfo(
+                    weather_state=forecast.get("IconPhrase"),
+                    temperature_value=forecast.get("Temperature").get("Value"),
+                    temperature_unit=forecast.get("Temperature").get("Unit"),
+                ),
+                date_time=datetime.fromtimestamp(forecast.get("EpochDateTime")).strftime("%H:%M")
+            )
+            forecast_info_list.append(forecast_info)
+        print(forecast_data)
+        return forecast_info_list

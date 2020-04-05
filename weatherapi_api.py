@@ -21,3 +21,20 @@ class WeatherAPI(APIInterface):
             image_url=weather_data.get("current").get("condition").get("icon")[2:],
         )
         return weather_info
+
+    def get_tomorrow_forecast(self, latitude, longitude) -> WeatherInfo:
+        forecast_data: dict = self.get_request(f"{self.base_url}/forecast.json", {
+            "key": self.api_key,
+            "q": f"{latitude},{longitude}",
+            "lang": "ru",
+            "days": 2
+        })
+        weather_data: dict = forecast_data.get("forecast").get("forecastday")[1]
+
+        weather_info = WeatherInfo(
+            weather_state=weather_data.get("day").get("condition").get("text"),
+            temperature_value=weather_data.get("day").get("avgtemp_c"),
+            temperature_unit="C",
+            image_url=weather_data.get("day").get("condition").get("icon")[2:]
+        )
+        return weather_info
